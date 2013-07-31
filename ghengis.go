@@ -106,13 +106,13 @@ func (me *ghengis) directionToDestination() antwar.Action {
 	return me.pos.directionTo(me.destination)
 }
 
-func (me *ghengis) tilePositions(env *antwar.Environment) map[*antwar.TileInfo]pos {
-	return map[*antwar.TileInfo]pos{
-		env.Here:  me.pos,
-		env.North: pos{me.pos.x, me.pos.y + 1},
-		env.East:  pos{me.pos.x + 1, me.pos.y},
-		env.South: pos{me.pos.x, me.pos.y - 1},
-		env.West:  pos{me.pos.x - 1, me.pos.y},
+func (me *ghengis) tilePositions(env *antwar.Tile) map[*antwar.Tile]pos {
+	return map[*antwar.Tile]pos{
+		env.Here():  me.pos,
+		env.North(): pos{me.pos.x, me.pos.y + 1},
+		env.East():  pos{me.pos.x + 1, me.pos.y},
+		env.South(): pos{me.pos.x, me.pos.y - 1},
+		env.West():  pos{me.pos.x - 1, me.pos.y},
 	}
 }
 
@@ -124,11 +124,11 @@ func (me *ghengis) distanceToDestinationAndHome() int {
 	return me.pos.distanceTo(me.destination) + me.destination.distanceTo(home)
 }
 
-func moreFoodThanAnts(tile *antwar.TileInfo) bool {
+func moreFoodThanAnts(tile *antwar.Tile) bool {
 	return tile.FoodCount() > tile.AntCount() // && tile.Team() != "ghengis"
 }
 
-func (me *ghengis) Decide(env *antwar.Environment, brains []antwar.AntBrain) (decision antwar.Action, bringFood bool) {
+func (me *ghengis) Decide(env *antwar.Tile, brains []antwar.AntBrain) (decision antwar.Action, bringFood bool) {
 	tilePositions := me.tilePositions(env)
 	bringFood = false
 	if len(brains) > 0 {
@@ -159,7 +159,7 @@ func (me *ghengis) Decide(env *antwar.Environment, brains []antwar.AntBrain) (de
 			me.destination = tilePos
 		}
 	}
-	if env.Here.FoodCount() > 0 {
+	if env.FoodCount() > 0 {
 		bringFood = true
 		decision = me.directionHome()
 	} else {
