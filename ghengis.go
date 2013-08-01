@@ -12,8 +12,9 @@ type pos struct {
 var home = pos{0, 0}
 
 type ghengis struct {
-	pos, destination pos
-	hasSeenFood      bool
+	pos, destination  pos
+	foodAtDestination int
+	turnsSinceUpdate  int
 }
 
 func (here pos) horizontalDirectionTo(there pos) antwar.Action {
@@ -128,6 +129,10 @@ func moreFoodThanAnts(tile *antwar.Tile) bool {
 	return tile.FoodCount() > tile.AntCount() // && tile.Team() != "ghengis"
 }
 
+func extraFood(t *antwar.Tile) int {
+	return t.FoodCount() - t.AntCount()
+}
+
 func (me *ghengis) Decide(env *antwar.Tile, brains []antwar.AntBrain) (decision antwar.Action, bringFood bool) {
 	tilePositions := me.tilePositions(env)
 	bringFood = false
@@ -143,19 +148,31 @@ func (me *ghengis) Decide(env *antwar.Tile, brains []antwar.AntBrain) (decision 
 				me.pos = other.pos
 			}
 
-			if !me.hasSeenFood && other.hasSeenFood {
-				me.destination = other.destination
-				me.hasSeenFood = true
+			if me.destination == other.destination {
+				if me.turnsSinceUpdate > other.turnsSinceUpdate {
+					me.foodAtDestination = other.foodAtDestination
+					me.turnsSinceUpdate = other.turnsSinceUpdate
+				} else if me.turnsSinceUpdate < other.turnsSinceUpdate {
+					other.foodAtDestination = me.foodAtDestination
+					other.turnsSinceUpdate = me.turnsSinceUpdate
+				}
 			}
 
-			if me.hasSeenFood && me.distanceToDestinationAndHome() > other.distanceToDestinationAndHome() {
+			if me.foodAtDestination == 0 && other.foodAtDestination > 0 {
 				me.destination = other.destination
+				me.foodAtDestination = other.foodAtDestination
+				other.foodAtDestination--
 			}
+
+			/*if me.foodAtDestination > 0 && me.distanceToDestinationAndHome() > other.distanceToDestinationAndHome() {
+				me.destination = other.destination
+			}*/
 		}
 	}
 	for tile, tilePos := range tilePositions {
 		if moreFoodThanAnts(tile) {
-			me.hasSeenFood = true
+			me.foodAtDestination = extraFood(tile)
+			me.turnsSinceUpdate = 0
 			me.destination = tilePos
 		}
 	}
@@ -166,11 +183,15 @@ func (me *ghengis) Decide(env *antwar.Tile, brains []antwar.AntBrain) (decision 
 		decision = me.directionToDestination()
 		if decision == antwar.HERE {
 			me.setRandomDestination()
-			me.hasSeenFood = false
+			me.foodAtDestination = 0
+			me.turnsSinceUpdate = 1000
 			decision = me.directionToDestination()
 		}
 	}
 	me.updatePosition(decision)
+	if me.turnsSinceUpdate < 1000 {
+		me.turnsSinceUpdate++
+	}
 	return
 }
 
